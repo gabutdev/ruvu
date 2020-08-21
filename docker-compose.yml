@@ -1,0 +1,59 @@
+version: "3"
+services:
+
+  db:
+    image: postgres
+    volumes:
+      - db:/var/lib/postgresql/data
+    ports:
+      - "5491:5432"
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+  
+    
+  redis:
+    image: 'redis'
+    volumes:
+      - 'redis:/var/lib/redis/'
+
+  sidekiq:
+    depends_on:
+      - redis
+    build: ./api
+    command: bundle exec sidekiq
+    volumes:
+      - .:/api
+
+  api:
+    build: ./api
+    command: bash -c "rm -f /api/tmp/pids/server.pid && foreman start -f /api/Procfile"
+    environment:
+      - PORT=3000
+    volumes:
+      - ./api:/api
+      - rails_log:/api/log
+    ports:
+      - "3091:3000"
+    depends_on:
+      - db
+      - sidekiq
+  
+  front:
+    build: ./front
+    ports:
+      - "8091:8080"
+    volumes:
+      - ./front:/front
+      - front_node_modules:/front/node_modules
+
+
+volumes:
+  db:
+  redis:
+  rails_log:
+  front_node_modules:
+
+
+#REDIS
+#VUE
+
